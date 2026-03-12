@@ -1,1 +1,1 @@
-# sstar-experiment
+# sstar-qr-analysis
