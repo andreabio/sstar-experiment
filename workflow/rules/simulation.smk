@@ -33,7 +33,7 @@ rule run_msprime_simulation:
         n_ref=50,
         n_tgt=50,
         n_src=0,
-        length_bp=200_000_000,
+        length_bp=50_000,
         mu=1.2e-8,
         rho=1e-8,
         ref_id="Reference",
