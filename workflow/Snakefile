@@ -28,17 +28,14 @@ seed_list = np.random.randint(1, 2**31, n_rep)
 
 rule all:
     input:
-        # RAW simulation VCF (no biallelic filter)
         expand(
             "results/simulation/rep_{rep}/simulation.rep_{rep}.vcf",
             rep=range(n_rep),
         ),
-        # phased sstar score output
         expand(
             "results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
             rep=range(n_rep),
         ),
-        # quantiles computed from score output
         expand(
             "results/sstar/rep_{rep}/sstar.phased.rep_{rep}.quantile.tsv",
             rep=range(n_rep),
@@ -46,3 +43,4 @@ rule all:
 
 include: "rules/simulation.smk"
 include: "rules/sstar.smk"
+include: "rules/quantile_regression.smk"

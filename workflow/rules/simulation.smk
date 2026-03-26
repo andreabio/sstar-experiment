@@ -17,7 +17,6 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
-
 rule run_msprime_simulation:
     input:
         demes="config/ArchIE_3D19.yaml",
