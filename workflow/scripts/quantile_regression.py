@@ -1,8 +1,7 @@
-
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import QuantileRegressor
-from sklearn.metrics import classification_report, precision_recall_fscore_support
+from quantile_forest import RandomForestQuantileRegressor
 
 
 def get_xy(df: pd.DataFrame, features: list[str]) -> tuple[pd.DataFrame, pd.Series]:
@@ -14,8 +13,41 @@ def get_xy(df: pd.DataFrame, features: list[str]) -> tuple[pd.DataFrame, pd.Seri
     return x, y
 
 
+def get_model(model_type: str, quantile: float, alpha: float):
+    """
+    Return the selected regression model.
+    """
+    if model_type == "quantile":
+        return QuantileRegressor(
+            quantile=quantile,
+            alpha=alpha,
+            solver="highs",
+        )
+
+    if model_type == "gradient":
+        return GradientBoostingRegressor(
+            loss="quantile",
+            alpha=quantile,
+            n_estimators=200,
+            max_depth=3,
+            random_state=42,
+        )
+
+    if model_type == "qrf":
+        return RandomForestQuantileRegressor(
+            n_estimators=200,
+            random_state=42,
+            n_jobs=-1,
+        )
+
+    raise ValueError(
+        f"Unsupported model_type: {model_type}. "
+        "Choose from: 'quantile', 'gradient', or 'qrf'."
+    )
+
+
 null_df = pd.read_csv(snakemake.input.null_tsv, sep="\t")
-intro_df = pd.read_csv(snakemake.input.intro_tsv, sep="\t")
+score_df = pd.read_csv(snakemake.input.score_tsv, sep="\t")
 
 feature_sets = {
     "sstar_snp": ["S*_SNP_number"],
@@ -25,78 +57,34 @@ feature_sets = {
 
 quantile = float(snakemake.params.quantile)
 alpha = float(snakemake.params.alpha)
+model_type = snakemake.params.model_type
+feature_set = snakemake.params.feature_set
 
-results = []
-pred_tables = []
-
-for model_name, features in feature_sets.items():
-    train = null_df.dropna(subset=features + ["S*_score"]).copy()
-    test = intro_df.dropna(subset=features + ["S*_score", "true_label"]).copy()
-
-    x_train, y_train = get_xy(train, features)
-    x_test, _ = get_xy(test, features)
-
-    # Linear quantile regression
-    # model = QuantileRegressor(
-    #     quantile=quantile,
-    #     alpha=alpha,
-    # )
-
-    # Gradient boosting quantile regression
-    model = GradientBoostingRegressor(
-        loss="quantile",
-        alpha=quantile,
-        n_estimators=200,
-        max_depth=3,
-        random_state=42,
+if feature_set not in feature_sets:
+    raise ValueError(
+        f"Unsupported feature_set: {feature_set}. "
+        f"Choose from: {list(feature_sets.keys())}"
     )
 
-    model.fit(x_train, y_train)
+features = feature_sets[feature_set]
 
-    test = test.copy()
-    test["predicted_threshold"] = model.predict(x_test)
-    test["pred_label"] = (test["S*_score"] > test["predicted_threshold"]).astype(int)
-    test["model"] = model_name
+train = null_df.dropna(subset=features + ["S*_score"]).copy()
+pred_df = score_df.dropna(subset=features + ["S*_score"]).copy()
 
-    precision, recall, f1, _ = precision_recall_fscore_support(
-        test["true_label"],
-        test["pred_label"],
-        average="binary",
-        zero_division=0,
+x_train, y_train = get_xy(train, features)
+x_pred, _ = get_xy(pred_df, features)
+
+model = get_model(model_type, quantile, alpha)
+model.fit(x_train, y_train)
+
+pred_df = pred_df.copy()
+
+if model_type == "qrf":
+    pred_df["expected_S*_score"] = model.predict(
+        x_pred,
+        quantiles=quantile,
     )
+else:
+    pred_df["expected_S*_score"] = model.predict(x_pred)
 
-    results.append(
-        {
-            "model": model_name,
-            "features": ",".join(features),
-            "quantile": quantile,
-            "alpha": alpha,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "n_rows": len(test),
-            "n_positive_true": int(test["true_label"].sum()),
-            "n_positive_pred": int(test["pred_label"].sum()),
-        }
-    )
-
-    pred_tables.append(test)
-
-pd.DataFrame(results).to_csv(snakemake.output.summary, sep="\t", index=False)
-pd.concat(pred_tables, ignore_index=True).to_csv(
-    snakemake.output.predictions, sep="\t", index=False
-)
-
-with open(snakemake.output.report, "w") as o:
-    pred_df = pd.concat(pred_tables, ignore_index=True)
-    for model_name in feature_sets:
-        x = pred_df[pred_df["model"] == model_name]
-        o.write(f"[{model_name}]\n")
-        o.write(
-            classification_report(
-                x["true_label"],
-                x["pred_label"],
-                zero_division=0,
-            )
-        )
-        o.write("\n")
+pred_df.to_csv(snakemake.output.predictions, sep="\t", index=False)
