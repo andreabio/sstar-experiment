@@ -1,4 +1,36 @@
+# Snakemake
 .snakemake/
+
+# Logs
 logs/
-results/
+*.log
 slurm-*.out
+
+# Environments
+mambaforge/
+conda-meta/
+.env
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Ignore full run directories
+run_intro/
+run_null/
+
+# Ignore large results
+results/
+
+# Keep only selected outputs if needed
+!results/results_introgression/ml/segment_evaluation.summary.tsv
+!results/results_introgression/ml/segment_evaluation.pr_scatter.png
+!results/results_introgression/ml/sstar.cutoff_sweep.png
+
+# Backup files
+*.bak
+
+# OS junk
+.DS_Store
+Thumbs.db

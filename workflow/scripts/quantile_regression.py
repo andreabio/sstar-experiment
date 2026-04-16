@@ -1,7 +1,4 @@
 import pandas as pd
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.linear_model import QuantileRegressor
-from quantile_forest import RandomForestQuantileRegressor
 
 
 def get_xy(df: pd.DataFrame, features: list[str]) -> tuple[pd.DataFrame, pd.Series]:
@@ -18,6 +15,8 @@ def get_model(model_type: str, quantile: float, alpha: float):
     Return the selected regression model.
     """
     if model_type == "quantile":
+        from sklearn.linear_model import QuantileRegressor
+
         return QuantileRegressor(
             quantile=quantile,
             alpha=alpha,
@@ -25,6 +24,8 @@ def get_model(model_type: str, quantile: float, alpha: float):
         )
 
     if model_type == "gradient":
+        from sklearn.ensemble import GradientBoostingRegressor
+
         return GradientBoostingRegressor(
             loss="quantile",
             alpha=quantile,
@@ -34,6 +35,8 @@ def get_model(model_type: str, quantile: float, alpha: float):
         )
 
     if model_type == "qrf":
+        from quantile_forest import RandomForestQuantileRegressor
+
         return RandomForestQuantileRegressor(
             n_estimators=200,
             random_state=42,

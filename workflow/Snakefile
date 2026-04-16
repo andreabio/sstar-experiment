@@ -17,30 +17,21 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
-# workflow/Snakefile
-
-import numpy as np
-
-n_rep = 10
-
-np.random.seed(3821)
-seed_list = np.random.randint(1, 2**31, n_rep)
-
 rule all:
     input:
-        expand(
-            "results/simulation/rep_{rep}/simulation.rep_{rep}.vcf",
-            rep=range(n_rep),
-        ),
-        expand(
-            "results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
-            rep=range(n_rep),
-        ),
-        expand(
-            "results/sstar/rep_{rep}/sstar.phased.rep_{rep}.quantile.tsv",
-            rep=range(n_rep),
-        )
+        "results/results_introgression/ml/quantile.region_snp.quantile_regression.segment_evaluation.tsv",
+        "results/results_introgression/ml/quantile.sstar_snp.quantile_regression.segment_evaluation.tsv",
+        "results/results_introgression/ml/quantile.both.quantile_regression.segment_evaluation.tsv",
+        "results/results_introgression/ml/gradient.region_snp.quantile_regression.segment_evaluation.tsv",
+        "results/results_introgression/ml/qrf.region_snp.quantile_regression.segment_evaluation.tsv",
+        "results/results_introgression/ml/sstar.q_0.80.segment_evaluation.tsv",
+        "results/results_introgression/ml/sstar.q_0.85.segment_evaluation.tsv",
+        "results/results_introgression/ml/sstar.q_0.90.segment_evaluation.tsv",
+        "results/results_introgression/ml/sstar.q_0.95.segment_evaluation.tsv",
+        "results/results_introgression/ml/sstar.q_0.99.segment_evaluation.tsv",
+        "results/results_introgression/ml/segment_evaluation.summary.tsv",
+        "results/results_introgression/ml/segment_evaluation.pr_curve.png"
 
-include: "rules/simulation.smk"
-include: "rules/sstar.smk"
 include: "rules/quantile_regression.smk"
+include: "rules/sstar.smk"
+include: "rules/evaluation.smk"

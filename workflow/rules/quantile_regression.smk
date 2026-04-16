@@ -1,50 +1,69 @@
-REPS = range(n_rep)
+# workflow/rules/quantile_regression.smk
 
-
-rule label_introgressed:
-    input:
-        score="results_introgression/results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
-        bed="results_introgression/results/simulation/rep_{rep}/simulation.rep_{rep}.true.tracts.bed",
-    output:
-        tsv="results_introgression/results/labeled/rep_{rep}/sstar.phased.rep_{rep}.labeled.tsv",
-    script:
-        "../scripts/label_introgressed.py"
-
-
-rule merge_introgression_labels:
-    input:
-        tsvs=expand(
-            "results_introgression/results/labeled/rep_{rep}/sstar.phased.rep_{rep}.labeled.tsv",
-            rep=REPS,
-        ),
-    output:
-        tsv="results_introgression/results/labeled/introgression.labeled.tsv",
-    script:
-        "../scripts/merge_score_tables.py"
+TRAIN_REPS = range(1000)
+TEST_REPS = range(10)
 
 
 rule merge_null_scores:
     input:
         tsvs=expand(
-            "results_null/results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
-            rep=REPS,
+            "run_null/results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
+            rep=TRAIN_REPS,
         ),
     output:
-        tsv="results_null/results/sstar/null.training.tsv",
+        tsv="results/results_null/sstar/null.training.tsv",
+    conda:
+        "../envs/env.yaml"
+    script:
+        "../scripts/merge_score_tables.py"
+
+
+rule merge_introgression_scores:
+    input:
+        tsvs=expand(
+            "run_intro/results/sstar/rep_{rep}/sstar.phased.rep_{rep}.scores.tsv",
+            rep=TEST_REPS,
+        ),
+    output:
+        tsv="results/results_introgression/sstar/introgression.test.tsv",
+    conda:
+        "../envs/env.yaml"
     script:
         "../scripts/merge_score_tables.py"
 
 
 rule run_quantile_regression:
     input:
-        null_tsv="results_null/results/sstar/null.training.tsv",
-        intro_tsv="results_introgression/results/labeled/introgression.labeled.tsv",
+        null_tsv="results/results_null/sstar/null.training.tsv",
+        score_tsv="results/results_introgression/sstar/introgression.test.tsv",
     output:
-        summary="results_introgression/results/ml/quantile_regression.summary.tsv",
-        predictions="results_introgression/results/ml/quantile_regression.predictions.tsv",
-        report="results_introgression/results/ml/quantile_regression.report.txt",
+        predictions=(
+            "results/results_introgression/ml/"
+            "{model_type}.{feature_set}.quantile_regression.predictions.tsv"
+        ),
     params:
         quantile=0.90,
         alpha=0.0,
+        model_type="{model_type}",
+        feature_set="{feature_set}",
+    conda:
+        "../envs/env.yaml"
     script:
         "../scripts/quantile_regression.py"
+
+
+rule evaluate_quantile_regression:
+    input:
+        predictions=(
+            "results/results_introgression/ml/"
+            "{model_type}.{feature_set}.quantile_regression.predictions.tsv"
+        ),
+    output:
+        tsv=(
+            "results/results_introgression/ml/"
+            "{model_type}.{feature_set}.quantile_regression.evaluation.tsv"
+        ),
+    conda:
+        "../envs/env.yaml"
+    script:
+        "../scripts/evaluate_prediction_calls.py"
