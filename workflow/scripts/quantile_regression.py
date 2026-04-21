@@ -43,9 +43,21 @@ def get_model(model_type: str, quantile: float, alpha: float):
             n_jobs=-1,
         )
 
+    if model_type == "catboost":
+        from catboost import CatBoostRegressor
+
+        return CatBoostRegressor(
+            loss_function=f"Quantile:alpha={quantile}",
+            iterations=500,
+            depth=6,
+            learning_rate=0.05,
+            random_seed=42,
+            verbose=False,
+        )
+
     raise ValueError(
         f"Unsupported model_type: {model_type}. "
-        "Choose from: 'quantile', 'gradient', or 'qrf'."
+        "Choose from: 'quantile', 'gradient', 'qrf', or 'catboost'."
     )
 
 
@@ -69,6 +81,11 @@ if feature_set not in feature_sets:
         f"Choose from: {list(feature_sets.keys())}"
     )
 
+if model_type == "catboost" and feature_set != "region_snp":
+    raise ValueError(
+        "For now, catboost is enabled only for feature_set='region_snp'."
+    )
+
 features = feature_sets[feature_set]
 
 train = null_df.dropna(subset=features + ["S*_score"]).copy()
@@ -87,6 +104,8 @@ if model_type == "qrf":
         x_pred,
         quantiles=quantile,
     )
+elif model_type == "catboost":
+    pred_df["expected_S*_score"] = model.predict(x_pred)
 else:
     pred_df["expected_S*_score"] = model.predict(x_pred)
 

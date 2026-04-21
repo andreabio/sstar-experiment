@@ -42,12 +42,14 @@ rule run_quantile_regression:
             "{model_type}.{feature_set}.quantile_regression.predictions.tsv"
         ),
     params:
-        quantile=0.90,
+        quantile=config["quantile"],
         alpha=0.0,
         model_type="{model_type}",
         feature_set="{feature_set}",
     conda:
         "../envs/env.yaml"
+    resources:
+        mem_gb=16,
     script:
         "../scripts/quantile_regression.py"
 

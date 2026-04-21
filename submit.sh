@@ -6,11 +6,4 @@
 #SBATCH --time=24:00:00
 #SBATCH --no-requeue
 
-source ~/.bashrc
-conda activate sstar-experiment
-
-snakemake -s workflow/Snakefile \
-  --cores 8 \
-  --use-conda \
-  --rerun-incomplete \
-  --rerun-triggers mtime
+snakemake -c 1 --profile config/slurm --rerun-incomplete --rerun-triggers mtime

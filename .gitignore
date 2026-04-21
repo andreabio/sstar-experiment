@@ -2,7 +2,7 @@
 .snakemake/
 
 # Logs
-logs/
+logs*/
 *.log
 slurm-*.out
 
@@ -15,10 +15,6 @@ conda-meta/
 # Python cache
 __pycache__/
 *.pyc
-
-# Ignore full run directories
-run_intro/
-run_null/
 
 # Ignore large results
 results/
